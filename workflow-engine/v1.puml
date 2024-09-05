@@ -1,0 +1,219 @@
+@startuml
+interface EndParser {
+    return new EndModel();
+}
+interface AbstractNodeParser {
+    protected NodeModel nodeModel;
+    nodeModel = newModel();
+    nodeModel.setNodeCode(nodeDefine.getTaskCode());
+    nodeModel.setNodeName(nodeDefine.getTaskName());
+    String taskSubCode = nodeDefine.getTaskSubCode();
+    TransitionModel transitionModel = new TransitionModel();
+    transitionModel.setSourceCode(nodeDefine.getTaskCode());
+    transitionModel.setTargetCode(taskSubCode);
+    nodeModel.setOutput(transitionModel);
+    parseNode(nodeDefine);
+}
+interface NodeParser {
+    void parse(FlowNodeDefine nodeDefine);
+    NodeModel getModel();
+}
+interface TaskParser {
+    TaskModel taskModel = (TaskModel) nodeModel;
+    taskModel.setOperators(nodeDefine.getOperators());
+}
+interface ProcessModelParser {
+}
+interface EndProcessHandler {
+}
+
+interface StartParser {
+    return new StartModel();
+}
+interface IHandler {
+    void handle(Execution execution);
+}
+interface CreateTaskHandler {
+     final TaskModel taskModel;
+    this.taskModel = taskModel;
+}
+interface ProcessModel {
+     String processDefinitionName;
+     String processDefinitionKey;
+    StartModel startModel = null;
+    List<NodeModel> nodes = new ArrayList<>();
+    List<TaskModel> tasks = new ArrayList<>();
+    List<FlowInstanceVarVo<ActorVarVo>> FlowInstanceVar = new ArrayList<>();
+    for (int i = 0; i < nodes.size(); i++) {
+    NodeModel nodeModel = nodes.get(i);
+    startModel = (StartModel) nodeModel;
+}
+interface Execution {
+     Long processInstanceId;
+     Long taskInstanceId;
+     Dict args;
+     ProcessModel processModel;
+     WfTaskInstance taskInstance;
+     WfProcessInstance processInstance;
+     FlowEngine engine;
+     String operator;
+     NodeModel nodeModel;
+}
+interface ProcessEvent {
+     ProcessEventTypeEnum eventType;
+     Long sourceId;
+}
+interface EndParser {
+    return new EndModel();
+}
+interface AbstractNodeParser {
+    protected NodeModel nodeModel;
+    nodeModel = newModel();
+    nodeModel.setNodeCode(nodeDefine.getTaskCode());
+    nodeModel.setNodeName(nodeDefine.getTaskName());
+    String taskSubCode = nodeDefine.getTaskSubCode();
+    TransitionModel transitionModel = new TransitionModel();
+    transitionModel.setSourceCode(nodeDefine.getTaskCode());
+    transitionModel.setTargetCode(taskSubCode);
+    nodeModel.setOutput(transitionModel);
+    parseNode(nodeDefine);
+}
+interface NodeParser {
+    void parse(FlowNodeDefine nodeDefine);
+    NodeModel getModel();
+}
+interface TaskParser {
+    TaskModel taskModel = (TaskModel) nodeModel;
+    taskModel.setOperators(nodeDefine.getOperators());
+}
+interface ProcessModelParser {
+}
+interface EndProcessHandler {
+}
+interface BaseModel {
+     String nodeCode; // 唯一编码
+     String nodeName; // 显示名称
+    handler.handle(execution);
+}
+interface StartParser {
+    return new StartModel();
+}
+interface IHandler {
+    void handle(Execution execution);
+}
+interface CreateTaskHandler {
+     final TaskModel taskModel;
+    this.taskModel = taskModel;
+}
+interface ProcessModel {
+     String processDefinitionName;
+     String processDefinitionKey;
+    StartModel startModel = null;
+    List<NodeModel> nodes = new ArrayList<>();
+    List<TaskModel> tasks = new ArrayList<>();
+    List<FlowInstanceVarVo<ActorVarVo>> FlowInstanceVar = new ArrayList<>();
+    for (int i = 0; i < nodes.size(); i++) {
+    NodeModel nodeModel = nodes.get(i);
+    startModel = (StartModel) nodeModel;
+}
+interface Execution {
+     Long processInstanceId;
+     Long taskInstanceId;
+     Dict args;
+     ProcessModel processModel;
+     WfTaskInstance taskInstance;
+     WfProcessInstance processInstance;
+     FlowEngine engine;
+     String operator;
+     NodeModel nodeModel;
+}
+interface ProcessEvent {
+     ProcessEventTypeEnum eventType;
+     Long sourceId;
+}
+interface FlowCallbackEventListener {
+    WfProcessInstanceService processInstanceService;
+    WfTaskInstanceService taskInstanceService;
+    WfCallbackInfoService wfCallbackInfoService;
+    Optional<WfCallbackInfo> callbackInfoOptional = wfCallbackInfoService.getFlowClientCallBackInfo();
+    log.warn(AuthHolder.getApplicationName() + ":流程回调未配置回调地址,不进行数据回调推送");
+}
+interface FlowTaskCallbackModel {
+    Long taskId;
+    String taskCode;
+    Long processInstanceId;
+    TaskInstanceStateEnum state;
+    String operator;
+    String taskComment;
+    LocalDateTime finishTime;
+}
+interface ApprovalFlowEngineService {
+    String name();
+    Page<FlowDefineVo> getFlowDefines(FlowDefineQueryDto requestParam);
+    FlowInstanceDraftVo saveDraft(String processDefinitionKey, Long processInstanceId, Long businessId);
+    List<FlowInstanceVarVo<ActorVarVo>> getProcessVariableKeys(String processDefinitionKey);
+    <T extends FlowVariableData> FlowInstanceVo startAndTakeUserTask(FlowInstanceRequestParam<T> requestParam);
+    Boolean editFlowInstanceActor(FlowOperatorEditDto requestParam);
+    Boolean submitUserTask(Long taskId, FlowTaskCommentDto flowTaskCommentDto);
+    Map<Long, FlowApprovalInfoVo> getApprovalInfo(Collection<Long> businessIds);
+    FlowGraphInfoVo getInstanceFlowInfo(Long processInstanceId);
+    Page<FlowTaskVo> listRuntimeTasks(FlowTaskQueryDto requestParam);
+    Page<FlowTaskVo> listHistoryTasks(FlowTaskQueryDto requestParam);
+    Boolean cancelFlow(Long processInstanceId);
+    Boolean restartFlow(Long processInstanceId);
+}
+interface FlowEngineServiceFactory {
+    final Map<String, ApprovalFlowEngineService> serviceMap;
+    throw new FlowException(FlowErrorCode.ENGINE_SERVER_NOT_FOUND);
+}
+interface CallbackRequestModel {
+    String callbakType;
+    String callbakModel;
+}
+interface Action {
+    void execute(Execution execution);
+}
+interface NodeModel {
+    String nodeCode;
+    String nodeName;
+    List<TransitionModel> outputs = new ArrayList<>();
+}
+interface TransitionModel {
+    String sourceCode;
+    String targetCode;
+}
+interface EndModel extends NodeModel {
+}
+interface StartModel extends NodeModel {
+}
+interface TaskModel extends NodeModel {
+    List<String> operators = new ArrayList<>();
+}
+interface ProcessModel extends NodeModel {
+    List<NodeModel> nodes = new ArrayList<>();
+    List<TaskModel> tasks = new ArrayList<>();
+    StartModel startModel;
+}
+
+' 继承和实现关系
+StartModel -up-|> NodeModel : extends
+EndModel -up-|> NodeModel : extends
+TaskModel -up-|> NodeModel : extends
+ProcessModel -up-|> NodeModel : extends
+
+' 实现关系
+EndParser ..|> AbstractNodeParser : implements
+NodeParser ..|> AbstractNodeParser : implements
+TaskParser ..|> AbstractNodeParser : implements
+ProcessModelParser ..|> AbstractNodeParser : implements
+
+StartParser ..|> AbstractNodeParser : implements
+CreateTaskHandler ..|> IHandler : implements
+EndProcessHandler ..|> IHandler : implements
+
+' 其他重要的类与接口关系
+Execution "1" *-- "1" ProcessModel : contains
+ProcessModel "1" *-- "many" NodeModel : contains
+NodeModel "1" *-- "many" TransitionModel : contains
+TaskModel "1" *-- "many" String : contains operators
+@enduml

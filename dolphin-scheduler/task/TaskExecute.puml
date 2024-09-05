@@ -1,0 +1,138 @@
+@startuml
+skinparam classFontColor automatic
+hide empty members
+
+'任务执行
+interface Delayed {
+    + {abstract} long getDelay(TimeUnit var1)
+}
+
+interface Runnable
+
+interface TaskCallBack {
+    + {abstract} void updateRemoteApplicationInfo(int taskInstanceId, ApplicationInfo applicationInfo)
+}
+
+class TaskCallbackImpl {
+    - workerMessageSender
+    - masterAddress
+}
+class ApplicationInfo {
+    - appIds
+}
+abstract class WorkerTaskExecuteRunnable #palegreen;line:green;line.dashed;text:green
+{
+    #taskExecutionContext
+    #workerConfig
+    #masterAddress
+    #taskPluginManager
+    #storageOperate
+    #abstractTask
+    #{abstract} void initializeTask()
+    #{abstract} void beforeExecute()
+    #{abstract} void executeTask(TaskCallBack taskCallBack)
+    #{abstract} void afterExecute() throws TaskException
+    #{abstract} void afterThrowing(Throwable throwable) throws TaskException
+    + void run()
+}
+
+abstract class WorkerDelayTaskExecuteRunnable #palegreen;line:green;line.dashed;text:green
+{
+    + long getDelay(TimeUnit unit)
+    + int compareTo(Delayed o)
+}
+
+abstract class DefaultWorkerDelayTaskExecuteRunnable #palegreen;line:green;line.dashed;text:green
+
+class DefaultWorkerDelayTaskExecuteRunnableFactory {
+    + DefaultWorkerDelayTaskExecuteRunnable createWorkerTaskExecuteRunnable()
+}
+
+class WorkerTaskExecuteRunnableFactoryBuilder
+
+class TaskDispatchProcessor {
+    - WorkerManagerThread workerManager
+    + void process(Channel channel, Command command)
+}
+
+class NettyRequestProcessor {
+    + void process(final Channel channel, final Command command)
+}
+
+class WorkerManagerThread {
+    - final WorkerExecService workerExecService
+    - final final DelayQueue<WorkerDelayTaskExecuteRunnable> waitSubmitQueue
+    + void start();
+    + void run()
+    + boolean offer(WorkerDelayTaskExecuteRunnable workerDelayTaskExecuteRunnable)
+    + void killTaskBeforeExecuteByInstanceId(Integer taskInstanceId)
+}
+
+class WorkerExecService {
+   - final ListeningExecutorService listeningExecutorService
+   - final ConcurrentHashMap<TaskInstanceId, WorkerTaskExecuteRunnable> taskExecuteThreadMap
+    + void submit(final WorkerTaskExecuteRunnable taskExecuteThread)
+}
+
+Runnable <|.. WorkerTaskExecuteRunnable
+TaskCallBack <|.. TaskCallbackImpl
+ApplicationInfo <.. TaskCallbackImpl : 使用
+WorkerTaskExecuteRunnable *-- TaskCallbackImpl
+Delayed <|.. WorkerDelayTaskExecuteRunnable
+WorkerTaskExecuteRunnable <|-- WorkerDelayTaskExecuteRunnable
+WorkerDelayTaskExecuteRunnable <|-- DefaultWorkerDelayTaskExecuteRunnable
+DefaultWorkerDelayTaskExecuteRunnable <.. DefaultWorkerDelayTaskExecuteRunnableFactory : 创建
+NettyRequestProcessor <|.. TaskDispatchProcessor
+DefaultWorkerDelayTaskExecuteRunnableFactory <.. WorkerTaskExecuteRunnableFactoryBuilder : 创建
+WorkerTaskExecuteRunnableFactoryBuilder <.. TaskDispatchProcessor : 使用
+WorkerManagerThread <.. TaskDispatchProcessor : 使用
+Runnable <|.. WorkerManagerThread
+WorkerManagerThread *-- WorkerExecService
+
+'代码注释
+note top of TaskCallBack
+如果任务状态是远程在管理
+则需要使用这个回调
+以通知master的方式来更新远程任务信息
+end note
+
+note top of Delayed
+实现任务的延时执行
+对应任务的"延时执行时间"配置项
+end note
+
+note right of TaskCallbackImpl
+ 通知master节点
+ 任务处于<size:15><b>运行中</b></size>
+end note
+
+note left of ApplicationInfo
+appIds = yarn的appId
+或其他远程任务管理的id
+end note
+
+note bottom of TaskDispatchProcessor
+1. 消费master发来的<size:15>TaskDispatchCommand</size>
+2. 如果任务是延迟执行，则立刻通知master更新任务实例状态为<size:15>DELAY_EXECUTION</size>
+3. 缓存taskExecutionContext
+4. 创建任务的runnable，并放入workerManager的<size:15>DelayedQueue</size>
+end note
+
+note top of WorkerManagerThread
+1. 创建为bean时，同时创建workerExecService线程池
+2. start时创建为Daemon线程
+3. run时，持续消费<size:15>DelayedQueue</size>,
+submit到WorkerExecService中执行
+end note
+
+note top of WorkerExecService
+执行worker任务，监听任务成功和失败
+end note
+
+note top of WorkerTaskExecuteRunnable
+1. initialize时，会设置一些基本参数
+2. beforeExecute时，会通过taskType从TaskPluginManager中得到TaskChannel，从而获得Task类
+3. beforeExecute时，会通过StorageOperate下载任务中关联的文件资源
+submit到WorkerExecService中执行
+end note
+@enduml

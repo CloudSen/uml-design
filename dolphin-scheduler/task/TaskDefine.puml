@@ -1,0 +1,114 @@
+@startuml
+skinparam classFontColor automatic
+hide empty members
+
+'任务定义
+abstract class AbstractTask {
+    #varPool
+    #taskExecutionContext
+    #processId
+    # appIds
+    + {abstract} void handle(TaskCallBack taskCallBack) throws TaskException
+    + {abstract} void cancel() throws TaskException
+    + {abstract} AbstractParameters getParameters()
+}
+abstract class AbstractRemoteTask {
+    + {abstract} List<String> getApplicationIds() throws TaskException
+    + {abstract} void cancelApplication() throws TaskException
+    + {abstract} void trackApplicationStatus() throws TaskException
+    + {abstract} void submitApplication() throws TaskException
+}
+abstract class AbstractYarnTask {
+    - shellCommandExecutor
+    + List<String> getApplicationIds() throws TaskException
+}
+abstract class AbstractK8sTask
+abstract class BaseLoopTaskExecutor {
+    #cancel=false
+    #loopTaskInstanceInfo
+    + void handle(TaskCallBack taskCallBack) throws TaskException
+    + {abstract} LoopTaskInstanceInfo submitLoopTask() throws TaskException
+    + {abstract} LoopTaskInstanceStatus queryTaskInstanceStatus(LoopTaskInstanceInfo taskInstanceInfo) throws TaskException
+    + {abstract} void cancelLoopTaskInstance(LoopTaskInstanceInfo taskInstanceInfo) throws TaskException
+    + Duration getTaskInstanceStatusQueryInterval()
+}
+abstract class BaseHttpTemplateLoopTaskExecutor {
+    - httpLoopTaskDefinition
+}
+class SimpleEtlLoopTaskExecutor #Cornsilk;line:darkgreen;line.dashed;text:darkgreen
+{
+    - etlFeignClient
+}
+
+class SqlTask #palegreen;line:green;line.dashed;text:green
+class JavaTask #palegreen;line:green;line.dashed;text:green
+class DataxTask #palegreen;line:green;line.dashed;text:green
+class FlinkTask #aliceblue;line:blue;line.dashed;text:blue
+class SparkTask #aliceblue;line:blue;line.dashed;text:blue
+class DinkyTask #yellow;line:green;line.dashed;text:green
+class SeatunnelTask #yellow;line:green;line.dashed;text:green
+
+AbstractTask <|-- AbstractRemoteTask
+AbstractRemoteTask <|-- AbstractK8sTask
+AbstractRemoteTask <|-- AbstractYarnTask
+AbstractRemoteTask <|-- BaseLoopTaskExecutor
+BaseLoopTaskExecutor <|-- BaseHttpTemplateLoopTaskExecutor
+BaseLoopTaskExecutor <|-- SimpleEtlLoopTaskExecutor
+AbstractTask <|-- SqlTask
+AbstractTask <|-- JavaTask
+AbstractTask <|-- DataxTask
+AbstractYarnTask <|-- FlinkTask
+AbstractYarnTask <|-- SparkTask
+AbstractRemoteTask <|-- DinkyTask
+AbstractRemoteTask <|-- SeatunnelTask
+
+'任务定义涉及的其他类
+interface LoopTaskInstanceInfo {
+    + {abstract} String getTaskInstanceId()
+}
+interface LoopTaskDefinition {
+    + {abstract} String getTaskName()
+    + {abstract} SubmitTaskMethodT getSubmitTaskMethod()
+    + {abstract} QueryTaskMethodT getQueryTaskStateMethod()
+    + {abstract} CancelTaskMethodT getCancelTaskMethod()
+}
+class HttpLoopTaskInstanceInfo {
+  - taskInstanceId
+}
+class HttpLoopTaskDefinition
+BaseLoopTaskExecutor *-- LoopTaskInstanceInfo
+BaseHttpTemplateLoopTaskExecutor *-- HttpLoopTaskDefinition
+LoopTaskDefinition <|.. HttpLoopTaskDefinition
+LoopTaskInstanceInfo <|.. HttpLoopTaskInstanceInfo
+
+'代码注释
+note top of AbstractYarnTask
+  通过YARN任务管理机制，
+  来实现任务的提交和跟踪
+end note
+
+note left of AbstractYarnTask::shellCommandExecutor
+  通过构建shell命令
+  来执行任务的提交
+end note
+
+note left of AbstractYarnTask::getApplicationIds
+  获取YARN管理的应用程序ID列表
+end note
+
+note top of BaseLoopTaskExecutor
+ 提交一个任务，
+ 并循环任务状态，
+ 直到任务完成
+end note
+
+note left of BaseLoopTaskExecutor::handle
+ 提交任务，
+ 然后每间隔5秒，查询一次任务状态，
+ 直到任务完成或被取消
+end note
+
+note left of BaseLoopTaskExecutor::getTaskInstanceStatusQueryInterval
+ 状态查询间隔，默认5秒
+end note
+@enduml

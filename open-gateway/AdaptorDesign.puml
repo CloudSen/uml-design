@@ -1,0 +1,177 @@
+@startuml
+
+skinparam classFontColor automatic
+hide empty members
+
+'Spring bean
+class AuthFilter {
+    - GatewayFilterAdaptorFactory adaptorFactory
+    + Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
+}
+
+'Spring bean
+class GatewayFilterAdaptorFactory {
+    - List<GatewayFilterAdaptor> adaptors
+    - Map<String, GatewayFilterAdaptor> adaptorMap
+    '构造器注入所有GatewayFilterAdaptor，并转换为adaptorMap
+    + GatewayFilterAdaptorFactory(List<GatewayFilterAdaptor> adaptors)
+    + GatewayFilterAdaptor getAdaptor(String adaptorName)
+    + GatewayFilterAdaptor getAdaptor(ServerWebExchange exchange)
+}
+
+interface GatewayFilterAdaptor {
+    '适配器的名字，用于注入map时作为key
+    + {abstract} String name()
+    '是否适配当前请求
+    + {abstract} boolean adaptable(ServerWebExchange exchange)
+    '支持的认证方式
+    + {abstract} Set<AuthenticationEnum> supportedAuthType()
+    'AuthFilter读取认证参数
+    + {abstract} Map<String, String> readAuthParamFrom(ServerWebExchange exchange)
+    'AuthFilter执行认证和鉴权逻辑
+    + {abstract} void authenticate(ServerWebExchange exchange)
+    '在RateLimitFilter执行限流逻辑
+    + {abstract} void rateLimit(ServerWebExchange exchange)
+}
+
+abstract class AbstractGatewayFilterAdaptor implements GatewayFilterAdaptor  {
+    - AuthenticationManager authenticationManager
+    - AuthParamParser authParamParser
+
+    + AbstractGatewayFilterAdaptor(AuthenticationManager, AuthParamParser)
+
+    '使用authParamParser读取认证参数
+    + Map<String, String> readAuthParamFrom(ServerWebExchange exchange)
+    '从exchange attr中读取认证参数，然后使用子类的supportedAuthType逻辑，最后使用子类的doAuthenticate逻辑
+    + void authenticate(ServerWebExchange exchange)
+    '从exchange attr中读取认证参数，然后调用子类的doRateLimit
+    + void rateLimit(ServerWebExchange exchange)
+
+    + {abstract} void doAuthenticate(AuthTypeEnum authType, Map<String, String> authParam)
+    + {abstract} void doRateLimit(AuthTypeEnum authType, Map<String, String> authParam)
+}
+
+'Spring bean
+class DataServiceGatewayFilterAdaptor extends AbstractGatewayFilterAdaptor {
+    + {static} String NAME
+}
+
+'Spring bean
+class AuthenticationManager {
+    - EnumMap<AuthenticationEnum, AuthenticationStrategy> strategyMap
+    '构造器注入所有AuthenticationStrategy，并转换为strategyMap
+    + AuthenticationManager(List<AuthenticationStrategy> strategies)
+    + void authenticate(AuthenticationEnum type, Map<String, String> params)
+}
+
+interface AuthenticationStrategy {
+    + {abstract} AuthenticationEnum support()
+    + {abstract} void authenticate(Map<String, String> params)
+}
+
+'Spring bean
+class DataServiceSimpleAuthenticationStrategy implements AuthenticationStrategy {
+}
+
+'Spring bean
+class DataServiceCryptoAuthenticationStrategy implements AuthenticationStrategy {
+}
+
+'Spring bean
+class DataServiceSignAuthenticationStrategy implements AuthenticationStrategy {
+}
+
+interface AuthParamParser {
+    + {abstract} Map<String, String> parse(ServerWebExchange exchange)
+}
+
+'Spring bean
+class DataServiceAuthParamParser implements AuthParamParser {
+}
+
+'Spring bean
+class DataAssetsAuthParamParser implements AuthParamParser {
+}
+
+AuthFilter o-- GatewayFilterAdaptorFactory
+GatewayFilterAdaptorFactory o-- GatewayFilterAdaptor
+AuthenticationManager o-- AuthenticationStrategy
+AbstractGatewayFilterAdaptor o-- AuthenticationManager
+AbstractGatewayFilterAdaptor o-- AuthParamParser
+
+
+'GlobalFilter相关类
+class AuthFilter #teal;line:white;text:white
+'适配器相关类，设置浅蓝色
+class GatewayFilterAdaptorFactory #lightblue;text:black
+interface GatewayFilterAdaptor #lightblue;text:black
+abstract class AbstractGatewayFilterAdaptor #lightblue;text:black
+class DataServiceGatewayFilterAdaptor #lightblue;text:black
+'认证相关类，设置浅绿色
+class AuthenticationManager #lightgreen;text:black
+interface AuthenticationStrategy #lightgreen;text:black
+class DataServiceSimpleAuthenticationStrategy #lightgreen;text:black
+class DataServiceCryptoAuthenticationStrategy #lightgreen;text:black
+class DataServiceSignAuthenticationStrategy #lightgreen;text:black
+'认证参数解析，设置橙色
+interface AuthParamParser #orange;text:black
+class DataServiceAuthParamParser #orange;text:black
+class DataAssetsAuthParamParser #orange;text:black
+
+
+note left of AuthFilter
+ 认证GlobalFilter
+ 在运行时决定使用哪个Adaptor来执行认证逻辑
+end note
+
+note left of GatewayFilterAdaptorFactory
+ GatewayFilterAdaptor工厂
+ 1. 通过适配器名从map来获取适配器实现
+ 2. 通过遍历适配器列表，调用adaptable方法，来动态获取适配器实现
+end note
+
+note left of GatewayFilterAdaptor::adaptable
+ 如何判断是否能适配当前请求
+end note
+
+note left of GatewayFilterAdaptor::supportedAuthType
+ 支持哪些认证方式
+end note
+
+note left of GatewayFilterAdaptor::readAuthParamFrom
+ 如何读取认证参数
+end note
+
+note left of GatewayFilterAdaptor::authenticate
+ 如何鉴权
+end note
+
+note left of GatewayFilterAdaptor::rateLimit
+ 如何限流
+end note
+
+note left of AbstractGatewayFilterAdaptor::authParamParser
+ 子类使用@Qualifer注解注入AuthParamParser具体实现
+end note
+
+note left of AbstractGatewayFilterAdaptor::readAuthParamFrom
+ 使用authParamParser读取认证参数
+end note
+
+note left of AbstractGatewayFilterAdaptor::authenticate
+ 读取认证参数，然后使用子类的supportedAuthType逻辑，
+ 最后使用子类的doAuthenticate逻辑
+end note
+
+note left of AbstractGatewayFilterAdaptor::rateLimit
+ 读取认证参数，然后使用子类的doRateLimit逻辑
+end note
+
+note right of AuthParamParser
+ 如何读取认证参数
+end note
+
+note right of AuthenticationManager
+ 认证策略装饰工厂
+end note
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+skinparam classFontColor automatic
+hide empty members
+
+class Thread
+
+abstract class BaseDaemonThread extends Thread {
+    # BaseDaemonThread(Runnable runnable)
+    # BaseDaemonThread(String name)
+}
+
+note top of BaseDaemonThread
+    初始化线程时，通过super.setDaemon(true)
+    确保线程daemon线程
+end note
+
+class CisdiMasterSchedulerBootstrap extends BaseDaemonThread {
+    - ThreadPoolExecutor masterPrepareExecService
+    - WorkflowEventLooper workflowEventLooper
+    - String masterAddress
+    + void init()
+    + synchronized void start()
+    + void run()
+}
+
+note left of CisdiMasterSchedulerBootstrap::init
+   1. 从master yaml配置中读取<b>master.preExecThreads</b>
+   来初始化masterPrepareExecService线程池，用于准备工作流实例
+   2. 从master yaml配置中读取<b>master.listenPort</b>
+   用于标识当前工作流是哪个master处理的
+end note
+
+note left of CisdiMasterSchedulerBootstrap::start
+   1. 启动自身daemon线程
+   2. 启动WorkflowEventLooper daemon线程
+end note
+
+'master相关类，颜色配置为绿色
+class BaseDaemonThread #palegreen;line:green;text:green
+class CisdiMasterSchedulerBootstrap #palegreen;line:green;text:green
+
+@enduml

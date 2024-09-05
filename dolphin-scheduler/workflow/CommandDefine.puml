@@ -1,0 +1,6 @@
+@startuml
+skinparam classFontColor automatic
+hide empty members
+
+
+@enduml
